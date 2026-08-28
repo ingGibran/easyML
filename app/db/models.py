@@ -1,0 +1,139 @@
+from sqlmodel import Field, SQLModel, Relationship
+from datetime import datetime, date
+
+"""
+ORM Models
+"""
+
+class Account(SQLModel, table=True): 
+    AccountID: int | None = Field(default=None, primary_key=True)
+    
+    Username: str = Field(max_length=50, unique=True)
+    Email: str = Field(max_length=50, unique=True)
+    Phone: str = Field(max_length=10, unique=True)
+    Hashed_Password: str = Field(max_length=100)
+    Birthdate: date
+    Occupation: str = Field(max_length=50)
+    
+    rate: "Rate | None" = Relationship(back_populates="account")
+    projects: list["Project"] = Relationship(back_populates="account")
+
+
+class Rate (SQLModel, table=True):
+    RateID: int | None = Field(default=None, primary_key=True)
+    
+    AccountID: int = Field(foreign_key="account.AccountID")
+    
+    Stars_Number: int = Field(ge=0, le=5)
+    Comment: str = Field(max_length=100)
+
+    account: Account = Relationship(back_populates="rate")
+
+
+class Project(SQLModel, table=True):
+    ProjectID: int | None = Field(default=None, primary_key=True)
+    
+    AccountID: int = Field(foreign_key="account.AccountID")
+    
+    Name: str = Field(max_length=50)
+    Description: str
+    Created_At: datetime = Field(default_factory=datetime.now)
+
+    account: Account = Relationship(back_populates="projects")
+    experiments: list["Experiment"] = Relationship(back_populates="project")
+
+
+class Dataset(SQLModel, table=True):
+    DatasetID: int | None = Field(default=None, primary_key=True)
+    
+    Name: str = Field(max_length=50)
+    Description: str
+    File_Path: str 
+    File_Format: str = Field(max_length=10)
+    Uploaded_Date: datetime = Field(default_factory=datetime.now)
+    Last_Save_Date: datetime = Field(default_factory=datetime.now)    
+
+    experiment: list["Experiment"] = Relationship(back_populates="dataset")
+
+
+class Experiment(SQLModel, table=True):
+    ExperimentID: int | None = Field(default=None, primary_key=True)
+    
+    ProjectID: int = Field(foreign_key="project.ProjectID")
+    DatasetID: int = Field(foreign_key="dataset.DatasetID")
+    
+    Name: str = Field(max_length=50)
+    Created_At: datetime = Field(default_factory=datetime.now)
+
+    project: Project = Relationship(back_populates="experiments")
+    dataset: Project = Relationship(back_populates="experiments")
+    model: list["Model"] = Relationship(back_populates="experiment")
+
+
+class Model(SQLModel, table=True):
+    ModelID: int | None = Field(default=None, primary_key=True)
+    
+    ExperimentID: int = Field(foreign_key="experiment.ExperimentID")
+    
+    Name: str = Field(max_length=50)
+    Version: str = Field(max_length=50)
+    Status: str = Field(max_length=50)
+    Framework: str = Field(max_length=50)
+    File_Path: str 
+    File_Format: str = Field(max_length=10)
+    
+    experiment: Experiment = Relationship(back_populates="models")
+    test: list["Test"] = Relationship(back_populates="model")
+    model_metric_logs: list["Model_Metric_Log"] = Relationship(back_populates="model")
+    deploys: list["Deploy"] = Relationship(back_populates="model")
+    inference_logs: list["Inference_Log"] = Relationship(back_populates="model")
+
+
+class Test(SQLModel, table=True):
+    TestID: int | None = Field(default=None, primary_key=True)
+    
+    ModelID: int = Field(foreign_key="model.ModelID")
+    
+    Accuracy: float
+    Precision: float 
+    Recall: float 
+    F1: float 
+    Final_Train_Loss: float 
+    Final_Eval_Loss: float 
+    Mean_Train_Loss: float 
+    Mean_Eval_Loss: float 
+    Made_At: datetime = Field(default_factory=datetime)
+
+    model: Model = Relationship(back_populates="tests")
+
+
+class Model_Metric_Log(SQLModel, table=True):
+    Model_Metric_LogID: int | None = Field(default=None, primary_key=True)
+    
+    ModelID: int = Field(foreign_key="model.ModelID")
+    Epoch: int 
+    Step: int 
+    Train_Loss: float 
+    Eval_Loss: float 
+
+    model: Model = Relationship(back_populates="model_metric_logs")
+
+
+class Deploy(SQLModel, table=True):
+    DeployID: int | None = Field(default=None, primary_key=True)
+    
+    ModelID: int = Field(foreign_key="model.ModelID") 
+    API_URL: str
+    # API_KEY: str
+    
+    model: Model = Relationship(back_populates="deploys")
+
+
+class Inference_Log(SQLModel, table=True):
+    Inference_LogID: int | None = Field(default=None, primary_key=True)
+    
+    ModelID: int = Field(foreign_key="model.ModelID")
+    Info: str 
+    Made_At: datetime = Field(default_factory=datetime.now)
+    
+    model: Model = Relationship(back_populates="inference_logs")

@@ -10,5 +10,5 @@ wheels/
 .venv
 
 # Other files
-.$RelationalDiagram.drawio.bkp
-.$RelationalDiagram.drawio
+*.drawio
+.env
