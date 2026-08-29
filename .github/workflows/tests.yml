@@ -46,4 +46,4 @@ jobs:
           # Pasar la cadena de conexión apuntando al servicio levantado en GitHub Actions
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
         run: |
-          pytest test_db.py -v
+          pytest tests/test_db.py -v
