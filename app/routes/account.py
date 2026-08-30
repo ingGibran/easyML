@@ -4,8 +4,8 @@ from sqlmodel import Session, select
 from datetime import timedelta
 
 from app.db.database import get_session
-from app.db.models import Account
-from app.security.auth import verify_password, create_access_token
+from app.db.models import Account, AccountCreate
+from app.security.auth import verify_password, create_access_token, get_password_hash
 from app.security.auth import ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter(
@@ -20,7 +20,11 @@ def login_for_access_token(
     session: Session = Depends(get_session)
 ):
     # 1. Find account by Username
-    account = session.exec(select(Account).where(Account.Username == form_data.username)).first()
+    account = session.exec(
+        select(Account).where(
+            (Account.Username == form_data.username) | (Account.Email == form_data.username)
+            )
+    ).first()
     
     # 2. Verify existence and password match
     if not account or not verify_password(form_data.password, account.Hashed_Password):
@@ -40,17 +44,52 @@ def login_for_access_token(
 
 
 # Register
-router.post("/register")
-def register():
+@router.post("/register")
+def register(
+    data: AccountCreate,
+    session: Session = Depends(get_session)
+    ):
     
-    """
-    @app.get("/accounts/me", response_model=Account)
+    # Verify personal information
+    if not data.Phone.isdigit():
+        return HTTPException(status_code=400, detail="Wrong Information")
+    
+    if session.exec( select(Account).where(Account.Username == data.Username) ).first():
+        return HTTPException(status_code=409, detail="Username in use")
+    
+    if session.exec( select(Account).where(Account.Email == data.Email) ).first():
+            return HTTPException(status_code=409, detail="Email in use")
+        
+    if session.exec( select(Account).where(Account.Phone == data.Phone) ).first():
+            return HTTPException(status_code=409, detail="Phone in use")
+    
+    # Save
+    hashed_password = get_password_hash(data.Password)
+    account = Account.model_validate(
+        data,
+        update={"Hashed_Password": hashed_password}
+    )
+    
+    # Commit
+    session.add(account)
+    session.commit()
+    session.refresh(account)
+    
+    return {"state:": "200", "account_id": account.AccountID}
+    
+
+
+    
+    
+
+"""
+@app.get("/accounts/me", response_model=Account)
 def read_accounts_me(current_account: Account = Depends(get_current_account)):
-    # current_account contains the fully loaded SQLModel instance
-    return current_account
-    
+# current_account contains the fully loaded SQLModel instance
+return current_account
+
 @app.get("/projects")
 def get_my_projects(current_account: Account = Depends(get_current_account)):
-    # You can now safely access relationships
-    return current_account.projects
-    """
+# You can now safely access relationships
+return current_account.projects
+"""

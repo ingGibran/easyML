@@ -24,7 +24,7 @@ def get_current_account(token: str = Depends(oauth2_scheme), session: Session = 
     except jwt.InvalidTokenError:
         raise credentials_exception
     
-    # Query your SQLModel Account table
+    # Query SQLModel Account table
     account = session.exec( select(Account).where(Account.Username == username) ).first()
     if account is None:
         raise credentials_exception

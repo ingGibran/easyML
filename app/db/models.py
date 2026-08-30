@@ -1,5 +1,6 @@
 from sqlmodel import Field, SQLModel, Relationship
 from datetime import datetime, date
+from typing import Optional
 
 """
 ORM Models
@@ -14,17 +15,17 @@ class AccountBase(SQLModel):
     Occupation: str = Field(max_length=50)
 
 class AccountCreate(AccountBase):
-    Password: str = Field(min_length=8, max_length=100)
+    Password: str = Field(max_length=100)
 
 class AccountRead(AccountBase):
     AccountID: int
 
-class Account(SQLModel, table=True): 
+class Account(AccountBase, table=True): 
     AccountID: int | None = Field(default=None, primary_key=True)
     
-    Hashed_Password: str = Field(max_length=100)
+    Hashed_Password: str = Field(min_length=8, max_length=72)
     
-    rate: "Rate | None" = Relationship(back_populates="account")
+    rate: Optional["Rate"] = Relationship(back_populates="account")
     projects: list["Project"] = Relationship(back_populates="account")
 
 # Rate
@@ -39,13 +40,23 @@ class Rate (SQLModel, table=True):
     account: Account = Relationship(back_populates="rate")
 
 # Project
-class Project(SQLModel, table=True):
+class ProjectBase(SQLModel):
+    Name: str = Field(max_length=50)
+    Description: str
+
+class ProjectCreate(ProjectBase):
+    pass
+
+class ProjectRead(ProjectBase):
+    ProjectID: int
+    AccountID: int 
+    Created_At: datetime
+
+class Project(ProjectBase, table=True):
     ProjectID: int | None = Field(default=None, primary_key=True)
     
     AccountID: int = Field(foreign_key="account.AccountID")
-    
-    Name: str = Field(max_length=50)
-    Description: str
+
     Created_At: datetime = Field(default_factory=datetime.now)
 
     account: Account = Relationship(back_populates="projects")
@@ -62,7 +73,7 @@ class Dataset(SQLModel, table=True):
     Uploaded_Date: datetime = Field(default_factory=datetime.now)
     Last_Save_Date: datetime = Field(default_factory=datetime.now)    
 
-    experiment: list["Experiment"] = Relationship(back_populates="dataset")
+    experiments: list["Experiment"] = Relationship(back_populates="dataset")
 
 # Experiment
 class Experiment(SQLModel, table=True):
@@ -75,8 +86,8 @@ class Experiment(SQLModel, table=True):
     Created_At: datetime = Field(default_factory=datetime.now)
 
     project: Project = Relationship(back_populates="experiments")
-    dataset: Project = Relationship(back_populates="experiments")
-    model: list["Model"] = Relationship(back_populates="experiment")
+    dataset: Dataset = Relationship(back_populates="experiments")
+    models: list["Model"] = Relationship(back_populates="experiment")
 
 # Model
 class Model(SQLModel, table=True):
@@ -92,7 +103,7 @@ class Model(SQLModel, table=True):
     File_Format: str = Field(max_length=10)
     
     experiment: Experiment = Relationship(back_populates="models")
-    test: list["Test"] = Relationship(back_populates="model")
+    tests: list["Test"] = Relationship(back_populates="model")
     model_metric_logs: list["Model_Metric_Log"] = Relationship(back_populates="model")
     deploys: list["Deploy"] = Relationship(back_populates="model")
     inference_logs: list["Inference_Log"] = Relationship(back_populates="model")
