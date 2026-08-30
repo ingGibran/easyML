@@ -53,6 +53,7 @@ jobs:
           MINIO_ENDPOINT: localhost:9000
           MINIO_ACCESS_KEY: test_minio_access
           MINIO_SECRET_KEY: test_minio_secret
+          MINIO_SECURE: false
 
           JWT_SECRET_KEY: jwt_secret_key
         run: |
