@@ -5,20 +5,29 @@ from datetime import datetime, date
 ORM Models
 """
 
-class Account(SQLModel, table=True): 
-    AccountID: int | None = Field(default=None, primary_key=True)
-    
+# Account
+class AccountBase(SQLModel):
     Username: str = Field(max_length=50, unique=True)
     Email: str = Field(max_length=50, unique=True)
     Phone: str = Field(max_length=10, unique=True)
-    Hashed_Password: str = Field(max_length=100)
     Birthdate: date
     Occupation: str = Field(max_length=50)
+
+class AccountCreate(AccountBase):
+    Password: str = Field(min_length=8, max_length=100)
+
+class AccountRead(AccountBase):
+    AccountID: int
+
+class Account(SQLModel, table=True): 
+    AccountID: int | None = Field(default=None, primary_key=True)
+    
+    Hashed_Password: str = Field(max_length=100)
     
     rate: "Rate | None" = Relationship(back_populates="account")
     projects: list["Project"] = Relationship(back_populates="account")
 
-
+# Rate
 class Rate (SQLModel, table=True):
     RateID: int | None = Field(default=None, primary_key=True)
     
@@ -29,7 +38,7 @@ class Rate (SQLModel, table=True):
 
     account: Account = Relationship(back_populates="rate")
 
-
+# Project
 class Project(SQLModel, table=True):
     ProjectID: int | None = Field(default=None, primary_key=True)
     
@@ -42,7 +51,7 @@ class Project(SQLModel, table=True):
     account: Account = Relationship(back_populates="projects")
     experiments: list["Experiment"] = Relationship(back_populates="project")
 
-
+# Dataset
 class Dataset(SQLModel, table=True):
     DatasetID: int | None = Field(default=None, primary_key=True)
     
@@ -55,7 +64,7 @@ class Dataset(SQLModel, table=True):
 
     experiment: list["Experiment"] = Relationship(back_populates="dataset")
 
-
+# Experiment
 class Experiment(SQLModel, table=True):
     ExperimentID: int | None = Field(default=None, primary_key=True)
     
@@ -69,7 +78,7 @@ class Experiment(SQLModel, table=True):
     dataset: Project = Relationship(back_populates="experiments")
     model: list["Model"] = Relationship(back_populates="experiment")
 
-
+# Model
 class Model(SQLModel, table=True):
     ModelID: int | None = Field(default=None, primary_key=True)
     
@@ -88,7 +97,7 @@ class Model(SQLModel, table=True):
     deploys: list["Deploy"] = Relationship(back_populates="model")
     inference_logs: list["Inference_Log"] = Relationship(back_populates="model")
 
-
+# Test
 class Test(SQLModel, table=True):
     TestID: int | None = Field(default=None, primary_key=True)
     
@@ -106,7 +115,7 @@ class Test(SQLModel, table=True):
 
     model: Model = Relationship(back_populates="tests")
 
-
+# Model_Metric_Log
 class Model_Metric_Log(SQLModel, table=True):
     Model_Metric_LogID: int | None = Field(default=None, primary_key=True)
     
@@ -118,7 +127,7 @@ class Model_Metric_Log(SQLModel, table=True):
 
     model: Model = Relationship(back_populates="model_metric_logs")
 
-
+# Deploy
 class Deploy(SQLModel, table=True):
     DeployID: int | None = Field(default=None, primary_key=True)
     
@@ -128,7 +137,7 @@ class Deploy(SQLModel, table=True):
     
     model: Model = Relationship(back_populates="deploys")
 
-
+# Inference_Log
 class Inference_Log(SQLModel, table=True):
     Inference_LogID: int | None = Field(default=None, primary_key=True)
     
