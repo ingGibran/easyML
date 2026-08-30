@@ -25,6 +25,7 @@ class Account(AccountBase, table=True):
     
     Hashed_Password: str = Field(min_length=8, max_length=72)
     
+    datasets: "Dataset" = Relationship(back_populates="account")
     rate: Optional["Rate"] = Relationship(back_populates="account")
     projects: list["Project"] = Relationship(back_populates="account")
 
@@ -66,16 +67,30 @@ class Project(ProjectBase, table=True):
     experiments: list["Experiment"] = Relationship(back_populates="project")
 
 # Dataset
-class Dataset(SQLModel, table=True):
-    DatasetID: int | None = Field(default=None, primary_key=True)
-    
+class DatasetBase(SQLModel):
     Name: str = Field(max_length=50)
     Description: str
+
+class DatasetCreate(DatasetBase):
+    pass
+
+class DatasetRead(DatasetBase):
+    File_Path: str 
+    File_Format: str = Field(max_length=10)
+    Uploaded_Date: datetime = Field(default_factory=datetime.now)
+    Last_Save_Date: datetime = Field(default_factory=datetime.now)  
+
+class Dataset(DatasetBase, table=True):
+    DatasetID: int | None = Field(default=None, primary_key=True)
+    
+    AccountID: int = Field(foreign_key="account.AccountID")
+    
     File_Path: str 
     File_Format: str = Field(max_length=10)
     Uploaded_Date: datetime = Field(default_factory=datetime.now)
     Last_Save_Date: datetime = Field(default_factory=datetime.now)    
 
+    account: Account = Relationship(back_populates="datasets")
     experiments: list["Experiment"] = Relationship(back_populates="dataset")
 
 # Experiment
