@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routes import account
+from app.routes import account, project
 
 app = FastAPI(
     title="EasyML API",
@@ -12,3 +12,4 @@ async def root():
     return {"message": "Hello World!"}
 
 app.include_router(account.router)
+app.include_router(project.router)

@@ -11,7 +11,7 @@ from app.security.auth import ACCESS_TOKEN_EXPIRE_MINUTES
 router = APIRouter(
     prefix="/account",
     tags=["Account"]
-    )
+)
 
 # Login
 @router.post("/token")
@@ -52,16 +52,16 @@ def register(
     
     # Verify personal information
     if not data.Phone.isdigit():
-        return HTTPException(status_code=400, detail="Wrong Information")
+        raise HTTPException(status_code=400, detail="Wrong Information")
     
     if session.exec( select(Account).where(Account.Username == data.Username) ).first():
-        return HTTPException(status_code=409, detail="Username in use")
+        raise HTTPException(status_code=409, detail="Username in use")
     
     if session.exec( select(Account).where(Account.Email == data.Email) ).first():
-            return HTTPException(status_code=409, detail="Email in use")
+        raise HTTPException(status_code=409, detail="Email in use")
         
     if session.exec( select(Account).where(Account.Phone == data.Phone) ).first():
-            return HTTPException(status_code=409, detail="Phone in use")
+        raise HTTPException(status_code=409, detail="Phone in use")
     
     # Save
     hashed_password = get_password_hash(data.Password)

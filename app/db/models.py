@@ -49,8 +49,11 @@ class ProjectCreate(ProjectBase):
 
 class ProjectRead(ProjectBase):
     ProjectID: int
-    AccountID: int 
+    Description: str 
     Created_At: datetime
+
+class ProjectUpdate(ProjectBase):
+    ProjectID: int 
 
 class Project(ProjectBase, table=True):
     ProjectID: int | None = Field(default=None, primary_key=True)
