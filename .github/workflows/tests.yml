@@ -53,5 +53,7 @@ jobs:
           MINIO_ENDPOINT: localhost:9000
           MINIO_ACCESS_KEY: test_minio_access
           MINIO_SECRET_KEY: test_minio_secret
+
+          JWT_SECRET_KEY: jwt_secret_key
         run: |
           pytest tests/test_db.py -v
