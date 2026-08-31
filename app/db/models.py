@@ -94,13 +94,22 @@ class Dataset(DatasetBase, table=True):
     experiments: list["Experiment"] = Relationship(back_populates="dataset")
 
 # Experiment
-class Experiment(SQLModel, table=True):
+class ExperimentBase(SQLModel):
+    Name: str = Field(max_length=50)
+
+class ExperimentCreate(ExperimentBase):
+    ProjectID: int 
+    DatasetID: int 
+
+class ExperimentUpdate(ExperimentBase):
+    ExperimentID: int
+
+class Experiment(ExperimentBase, table=True):
     ExperimentID: int | None = Field(default=None, primary_key=True)
     
     ProjectID: int = Field(foreign_key="project.ProjectID")
     DatasetID: int = Field(foreign_key="dataset.DatasetID")
-    
-    Name: str = Field(max_length=50)
+
     Created_At: datetime = Field(default_factory=datetime.now)
 
     project: Project = Relationship(back_populates="experiments")
