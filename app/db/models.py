@@ -92,6 +92,19 @@ class Dataset(DatasetBase, table=True):
 
     account: Account = Relationship(back_populates="datasets")
     experiments: list["Experiment"] = Relationship(back_populates="dataset")
+    operations: "DatasetOperation" = Relationship(back_populates="dataset")
+    
+# Dataset Operation
+class DatasetOperation(SQLModel, table=True):
+    OperationID: int | None = Field(default=None, primary_key=True)
+
+    DatasetID: int = Field(foreign_key="dataset.DatasetID")
+
+    Operation: str = Field(max_length=50)
+    Parameters: str
+    Created_At: datetime = Field(default_factory=datetime.now)
+
+    dataset: "Dataset" = Relationship(back_populates="operations")
 
 # Experiment
 class ExperimentBase(SQLModel):

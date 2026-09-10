@@ -45,7 +45,6 @@ def get_dataset_stream(bucket_name: str, object_name: str):
         print(f"Error reading file {object_name}: ", exc)
         raise exc
 
-
 def update_dataset_file(file_stream, file_size: int, bucket_name: str, object_name: str, content_type: str):
     try:
         client.put_object(
@@ -60,7 +59,9 @@ def update_dataset_file(file_stream, file_size: int, bucket_name: str, object_na
         print("Overwrite failed:", exc)
         raise exc
 
+
 def delete_dataset_file(bucket_name: str, object_name:str):
+
     try:
         client.remove_object(bucket_name, object_name)
         print(f"File {object_name} deleted successfully form minIO")

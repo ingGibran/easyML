@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routes import account, project, dataset, experiment
+from app.routes import account, project, dataset, experiment, data
 
 app = FastAPI(
     title="EasyML API",
@@ -15,3 +15,4 @@ app.include_router(account.router)
 app.include_router(project.router)
 app.include_router(dataset.router)
 app.include_router(experiment.router)
+app.include_router(data.router)
