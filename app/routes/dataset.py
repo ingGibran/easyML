@@ -16,7 +16,7 @@ router = APIRouter(
 
 # Upload 
 @router.post("/upload")
-def create_experiment(
+def create_dataset(
     Name: str,
     Description: Optional[str],
     file: UploadFile = File(...),
@@ -124,9 +124,9 @@ def download_dataset(
     
     return StreamingResponse(iterfile(), media_type=media_type, headers=headers)
 
-
+# Update
 @router.put("/{dataset_id}")
-def update_experiment(
+def update_dataset(
     dataset_id: int, 
     Name: Optional[str] = Form(None, description="Dataset new name"),
     Description: Optional[str] = Form(None, description="Dataset new description"),
@@ -185,9 +185,9 @@ def update_experiment(
         
         return {"message": "Dataset updated successfully", "dataset_id": dataset.DatasetID}
 
-
+# Delete
 @router.delete("/{dataset_id}")
-def delete_experiment(
+def delete_dataset(
     dataset_id: int,
     current_account: Account = Depends(get_current_account),
     session: Session = Depends(get_session)

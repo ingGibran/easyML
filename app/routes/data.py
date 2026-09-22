@@ -8,8 +8,7 @@ from sqlmodel import Session, select
 from app.db.database import get_session
 from app.db.models import Account, Dataset
 from app.security.current import get_current_account
-from app.storage.minio_service import get_dataset_stream
-
+from app.storage.minio_service import get_dataset_stream, save_dataset
 
 router = APIRouter(
     prefix="/data",
@@ -432,4 +431,89 @@ def reset_actions(
 
     return {
         "status": "Actions reset successfully"
+    }
+
+
+# ============================================================
+# Save Actions
+# ============================================================
+
+@router.post("/dataset/save")
+def save_dataset_changes(
+    dataset_id: int,
+    current_user: Account = Depends(get_current_account),
+    session: Session = Depends(get_session)
+):
+    # ------------------------------------------------
+    # Get dataset and verify ownership
+    # ------------------------------------------------
+
+    dataset = get_dataset_or_404(
+        dataset_id,
+        current_user,
+        session
+    )
+
+    # ------------------------------------------------
+    # Get pending actions
+    # ------------------------------------------------
+
+    actions = dataset_actions.get(
+        dataset_id,
+        []
+    )
+
+    if not actions:
+        return {
+            "status": "No changes to save",
+            "dataset_id": dataset_id
+        }
+
+    # ------------------------------------------------
+    # Load complete original dataset
+    # ------------------------------------------------
+
+    df = load_dataset(dataset)
+
+    # ------------------------------------------------
+    # Apply pending transformations
+    # ------------------------------------------------
+
+    df = apply_actions(
+        df,
+        actions
+    )
+
+    # ------------------------------------------------
+    # Save modified dataset to MinIO
+    # ------------------------------------------------
+
+    try:
+        save_dataset(
+            bucket_name="dataset",
+            object_name=dataset.File_Path,
+            df=df,
+            file_format=dataset.File_Format
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error saving dataset: {str(e)}"
+        )
+
+    # ------------------------------------------------
+    # Remove pending actions
+    # ------------------------------------------------
+
+    dataset_actions.pop(
+        dataset_id,
+        None
+    )
+
+    return {
+        "status": "Dataset updated successfully",
+        "dataset_id": dataset_id,
+        "columns": df.columns,
+        "rows": df.height
     }
