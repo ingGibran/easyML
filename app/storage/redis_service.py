@@ -4,7 +4,8 @@ import json
 client = Redis(
     host='host',
     port=6379,
-    decode_responses=True
+    decode_responses=True,
+    
 )
 
 # Get Key
@@ -29,6 +30,8 @@ def save_action(
         key,
         json.dumps(action)
     )
+    
+    client.expire(key, 7200)
 
 # Load Actions
 def load_actions(
