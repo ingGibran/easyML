@@ -9,6 +9,7 @@ from app.db.database import get_session
 from app.db.models import Account, Dataset
 from app.security.current import get_current_account
 from app.storage.minio_service import get_dataset_stream, save_dataset
+from app.storage.redis_service import create_actions_list
 
 router = APIRouter(
     prefix="/data",
@@ -71,7 +72,10 @@ class DatasetPreview(BaseModel):
 # PROVISIONAL:
 # This should eventually be replaced by persistent storage
 # or a proper editing session.
-dataset_actions: dict[int, list[dict]] = {}
+#dataset_actions: dict[int, list[dict]] = {}
+create_actions_list()
+
+
 
 
 # ============================================================
