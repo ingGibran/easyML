@@ -9,7 +9,7 @@ from app.db.database import get_session
 from app.db.models import Account, Dataset
 from app.security.current import get_current_account
 from app.storage.minio_service import get_dataset_stream, save_dataset
-from app.storage.redis_service import create_actions_list
+from app.storage.redis_service import load_actions, save_action, delete_actions
 
 router = APIRouter(
     prefix="/data",
@@ -73,7 +73,6 @@ class DatasetPreview(BaseModel):
 # This should eventually be replaced by persistent storage
 # or a proper editing session.
 #dataset_actions: dict[int, list[dict]] = {}
-create_actions_list()
 
 
 
@@ -258,14 +257,17 @@ def remove_column(
             detail=f"Column '{column_name}' not found"
         )
 
-    actions = dataset_actions.setdefault(dataset_id, [])
 
     action = {
         "action": "remove",
         "column_name": column_name
     }
 
-    actions.append(action)
+    save_action(
+        current_user.AccountID,
+        dataset_id,
+        action
+    )
 
     return {
         "status": "Column removal added",
@@ -295,15 +297,17 @@ def cast_column(
             detail=f"Column '{column_info.column_name}' not found"
         )
 
-    actions = dataset_actions.setdefault(dataset_id, [])
-
     action = {
         "action": "cast",
         "column_name": column_info.column_name,
         "column_type": column_info.column_type
     }
 
-    actions.append(action)
+    save_action(
+        current_user.AccountID,
+        dataset_id,
+        action
+    )
 
     return {
         "status": "Column cast added",
@@ -359,9 +363,9 @@ def get_dataset_preview(
     # Get pending actions
     # --------------------------------------------
 
-    actions = dataset_actions.get(
-        dataset_id,
-        []
+    actions = load_actions(
+        current_user.AccountID,
+        dataset_id
     )
 
     # --------------------------------------------
@@ -404,9 +408,9 @@ def get_actions(
 
     return {
         "dataset_id": dataset_id,
-        "actions": dataset_actions.get(
-            dataset_id,
-            []
+        "actions": load_actions(
+            current_user.AccountID,
+            dataset_id
         )
     }
 
@@ -428,9 +432,9 @@ def reset_actions(
         session
     )
 
-    dataset_actions.pop(
-        dataset_id,
-        None
+    delete_actions(
+        current_user.AccountID,
+        dataset_id
     )
 
     return {
@@ -462,9 +466,9 @@ def save_dataset_changes(
     # Get pending actions
     # ------------------------------------------------
 
-    actions = dataset_actions.get(
-        dataset_id,
-        []
+    actions = load_actions(
+        current_user.AccountID,
+        dataset_id
     )
 
     if not actions:
@@ -510,9 +514,9 @@ def save_dataset_changes(
     # Remove pending actions
     # ------------------------------------------------
 
-    dataset_actions.pop(
-        dataset_id,
-        None
+    delete_actions(
+        current_user.AccountID,
+        dataset_id
     )
 
     return {
