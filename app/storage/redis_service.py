@@ -7,12 +7,14 @@ client = Redis(
     decode_responses=True
 )
 
+# Get Key
 def get_actions_key(
     account_id: int,
     dataset_id: int,
 ) -> str:
     return f"edit:{account_id}:{dataset_id}"
 
+# Save Action
 def save_action(
     account_id: int,
     dataset_id: int,
@@ -28,6 +30,7 @@ def save_action(
         json.dumps(action)
     )
 
+# Load Actions
 def load_actions(
     account_id: int,
     dataset_id: int
@@ -49,6 +52,7 @@ def load_actions(
         for action in actions
     ]
 
+# Delete Actions
 def delete_actions(
     account_id: int,
     dataset_id: int
