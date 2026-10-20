@@ -9,7 +9,7 @@ app = FastAPI(
 
 @app.get("/") 
 async def root():
-    return {"message": "Hello World!"}
+    return {"Welcome!": "This is my Backend for easyML"}
 
 app.include_router(account.router)
 app.include_router(project.router)
