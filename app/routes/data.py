@@ -36,6 +36,13 @@ class ColumnType(str, Enum):
     DATE = "Date"
     DATETIME = "Datetime"
 
+class ExpressionType(str, Enum):
+    LE = "le"
+    GE = "ge"
+    EQ = "eq"
+    NE = "ne"
+    GT = "gt"
+    LT = "lt"
 
 POLARS_TYPES = {
     ColumnType.INT8: pl.Int8,
@@ -58,23 +65,15 @@ class CastColumnRequest(BaseModel):
     column_name: str
     column_type: ColumnType
 
+class FilterColumnRequest(BaseModel):
+    column_name: str
+    expression: ExpressionType # le, ge, eq, ne, gt, lt
+    value: float
 
 class DatasetPreview(BaseModel):
     columns: list[str]
     rows: list[dict]
     returned_rows: int
-
-
-# ============================================================
-# Temporary editing state
-# ============================================================
-
-# PROVISIONAL:
-# This should eventually be replaced by persistent storage
-# or a proper editing session.
-#dataset_actions: dict[int, list[dict]] = {}
-
-
 
 
 # ============================================================
@@ -221,6 +220,47 @@ def apply_actions(
                     )
                 )
 
+        # --------------------------------------------
+        # Filter
+        # --------------------------------------------
+        elif action_name == "filter":
+
+            column_name = action["column_name"]
+            expression = action["expression"]
+            value = action["value"]
+
+            if column_name not in df.columns:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Column '{column_name}' does not exist "
+                        "in the current dataset state"
+                    )
+                )
+
+            if expression not in ["le", "ge", "eq", "ne", "gt", "lt"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Expression '{expression}' is not valid. "
+                        "Valid expressions are: le, ge, eq, ne, gt, lt"
+                    )
+                )
+
+            # Apply the filter
+            if expression == "le":
+                df = df.filter(pl.col(column_name) <= value)
+            elif expression == "ge":
+                df = df.filter(pl.col(column_name) >= value)
+            elif expression == "eq":
+                df = df.filter(pl.col(column_name) == value)
+            elif expression == "ne":
+                df = df.filter(pl.col(column_name) != value)
+            elif expression == "gt":
+                df = df.filter(pl.col(column_name) > value)
+            elif expression == "lt":
+                df = df.filter(pl.col(column_name) < value)
+
         else:
 
             raise HTTPException(
@@ -301,6 +341,47 @@ def cast_column(
         "action": "cast",
         "column_name": column_info.column_name,
         "column_type": column_info.column_type
+    }
+
+    save_action(
+        current_user.AccountID,
+        dataset_id,
+        action
+    )
+
+    return {
+        "status": "Column cast added",
+        "action": action
+    }
+
+
+@router.post("/filter_column")
+def filter_column(
+    dataset_id: int,
+    column_info: FilterColumnRequest,
+    current_user: Account = Depends(get_current_account),
+    session: Session = Depends(get_session)
+):
+    dataset = get_dataset_or_404(
+        dataset_id,
+        current_user,
+        session
+    )
+
+    # Load only enough data to know the current schema.
+    df = load_dataset(dataset, limit=1)
+
+    if column_info.column_name not in df.columns:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Column '{column_info.column_name}' not found"
+        )
+
+    action = {
+        "action": "filter",
+        "column_name": column_info.column_name,
+        "expression": column_info.expression,
+        "value": column_info.value
     }
 
     save_action(

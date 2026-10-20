@@ -2,9 +2,11 @@ from redis import Redis
 import json
 
 client = Redis(
-    host='host',
+    host='redis',
     port=6379,
-    decode_responses=True,
+    socket_connect_timeout=3,
+    socket_timeout=3,
+    decode_responses=True
     
 )
 
