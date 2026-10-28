@@ -44,6 +44,13 @@ class ExpressionType(str, Enum):
     GT = "gt"
     LT = "lt"
 
+class EncodingType(str, Enum):
+    LABEL = "label"
+    ONE_HOT = "one hot"
+    ORDINAL = "ordinal"
+    TARGET_ENCODING = "target encoding"
+    FRECUENCY_ENCODING = "frecuency encoding"
+
 POLARS_TYPES = {
     ColumnType.INT8: pl.Int8,
     ColumnType.INT16: pl.Int16,
@@ -70,10 +77,42 @@ class FilterColumnRequest(BaseModel):
     expression: ExpressionType # le, ge, eq, ne, gt, lt
     value: float
 
+class EncodingColumnRequest(BaseModel):
+    column_name: str
+    encoding_type: EncodingType # label, one hot, ordinal, target, frecuency
+
 class DatasetPreview(BaseModel):
     columns: list[str]
     rows: list[dict]
     returned_rows: int
+
+
+# ============================================================
+# Encodings
+# ============================================================
+# label, one hot, ordinal, target, frecuency
+def label_encode(
+    df: pl.DataFrame,
+    column_name: str,
+    value_weight: list[tuple[str, float]]
+) -> pl.DataFrame:
+
+    if column_name not in df.columns:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Column '{column_name}' does not exist"
+        )
+
+    column_encoding_name = f"{column_name}_Label_Encoding"
+    weights = dict(value_weight)
+
+    return df.with_columns(
+        pl.col(column_name)
+        .replace(weights, default=0.0)
+        .fill_null(0.0)
+        .cast(pl.Float64)
+        .alias(column_encoding_name)
+    )
 
 
 # ============================================================
@@ -261,6 +300,31 @@ def apply_actions(
             elif expression == "lt":
                 df = df.filter(pl.col(column_name) < value)
 
+        # --------------------------------------------
+        # Encoding
+        # --------------------------------------------
+        elif action_name in ("encode", "encoding"):
+            encoding_type = action["type"]
+            column_name = action["column_name"]
+
+            if column_name not in df.columns:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Column '{column_name}' does not exist "
+                        "in the current dataset state"
+                    )
+                )
+
+            if encoding_type == "label":
+                values_weight = action["value_weight"]
+                df = label_encode(df, column_name, values_weight)
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Encoding type '{encoding_type}' is not implemented"
+                )
+
         else:
 
             raise HTTPException(
@@ -269,7 +333,6 @@ def apply_actions(
             )
 
     return df
-
 
 # ============================================================
 # Actions
@@ -395,14 +458,53 @@ def filter_column(
         "action": action
     }
 
+@router.post("/encode_column")
+def encode_column(
+    dataset_id: int,
+    encoding_info: EncodingColumnRequest,
+    value_weight: list[tuple[str, float]],
+    current_user: Account = Depends(get_current_account),
+    session: Session = Depends(get_session)
+):
+    dataset = get_dataset_or_404(
+        dataset_id,
+        current_user,
+        session
+    )
+
+    # Load only enough data to know the current schema.
+    df = load_dataset(dataset, limit=1)
+
+    if encoding_info.column_name not in df.columns:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Column '{encoding_info.column_name}' not found"
+        )
+
+    action = {
+        "action": "encode",
+        "type": encoding_info.encoding_type,
+        "column_name": encoding_info.column_name
+    }
+    if encoding_info.encoding_type == "label":
+        action["value_weight"] = value_weight
+
+    save_action(
+        current_user.AccountID,
+        dataset_id,
+        action
+    )
+
+    return {
+        "status": "Column encode added",
+        "action": action
+    }
 
 # ============================================================
 # Preview
 # ============================================================
 
-@router.get(
-    "/dataset/preview",
-    response_model=DatasetPreview
+@router.get("/dataset/preview", response_model=DatasetPreview
 )
 def get_dataset_preview(
     dataset_id: int,
@@ -437,7 +539,7 @@ def get_dataset_preview(
 
     df = load_dataset(
         dataset,
-        limit=limit
+        #limit=limit
     )
 
     # --------------------------------------------
@@ -457,6 +559,7 @@ def get_dataset_preview(
         df,
         actions
     )
+    df = df.head(limit) # NEW
 
     # --------------------------------------------
     # Return preview
