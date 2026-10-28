@@ -106,13 +106,15 @@ def label_encode(
     column_encoding_name = f"{column_name}_Label_Encoding"
     weights = dict(value_weight)
 
-    return df.with_columns(
+    encoded_df = df.with_columns(
         pl.col(column_name)
         .replace(weights, default=0.0)
         .fill_null(0.0)
         .cast(pl.Float64)
         .alias(column_encoding_name)
     )
+
+    return encoded_df.drop(column_name)
 
 
 # ============================================================
